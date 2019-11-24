@@ -17,7 +17,7 @@ app.post('/generateAddress', api.generateAddress);
 // SENDING
 app.post('/sendtransaction/createTxn', api.createTxn);
 app.post('/sendtransaction/signTxn', api.signTxn);
-
+app.post('/broadcastTransaction',api.broadcastTransaction)
 // TRANSACTION STATUS
 app.get('/tx', api.tx);
 

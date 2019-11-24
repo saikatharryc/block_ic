@@ -4,6 +4,8 @@ var bitcoin = require('bitcoinjs-lib');
 var Insight = require('bitcore-explorers').Insight;
 var btcHandler = new Insight(config.insightProvider[config.current]);
 btcHandler.requestGet = sysUtils.promisify(btcHandler.requestGet);
+btcHandler.requestPost = sysUtils.promisify(btcHandler.requestPost);
+
 const CURRENT_NETWORK = bitcoin.networks[config.network.BTC[config.current]];
 const DEFAULT_FEES = 50000;
 
@@ -45,9 +47,9 @@ async function getUtxos(addresses = []) {
         return ({
             address: utxo.address,
             txid: utxo.mintTxid,
-            voutIndex:utxo.mintIndex,
-            amountInSatoshi: utxo.value,
-            script: Buffer.from(utxo.script)
+            outputIndex:utxo.mintIndex,
+            satoshis: utxo.value,
+            script: utxo.script
         });
     });
 
@@ -64,19 +66,19 @@ async function createTransaction(addresses = [], toAddress, sendAmount, fees = 1
         let sum = 0, isDone = false, vinOrder = [];
         // utxos.forEach((utxo) => { sum += utxo.amountInSatoshi || 0 });
         txBuilder.setVersion(1)
-
+        
         utxos.map((utxo, i) => {
-            sum += utxo.amountInSatoshi;
+            sum += utxo.satoshis;
             if (!isDone) {
                 if (sum >= (sendAmount + fees)) {
-                    txBuilder.addInput(utxo.txid, utxo.voutIndex/* , sequenceId, utxo.script */);
+                    txBuilder.addInput(utxo.txid, utxo.outputIndex/* , sequenceId, utxo.script */);
                     txBuilder.addOutput(utxo.address, (sum - (sendAmount + fees)));
                     vinOrder.push(utxo.address);
                     isDone = true;
                     return;
                 }
                 if (sum <= (sendAmount + fees)) {
-                    txBuilder.addInput(utxo.txid, utxo.voutIndex/* , sequenceId, utxo.script */);
+                    txBuilder.addInput(utxo.txid, utxo.outputIndex/* , sequenceId, utxo.script */);
                     vinOrder.push(utxo.address);
                 }
             }
@@ -155,6 +157,20 @@ async function getTxDetails(txHash) {
     return ({ status: true, message: (details.body) });
 }
 
+
+async function broadcastTransaction(serializedTx) {
+    const request =  await btcHandler.requestPost('/tx/send',{rawTx:serializedTx})
+    if(request.statusCode !== 200){
+        return ({ status: false, error:request.body });
+    }
+    try {
+        var broadcastedTxn = JSON.parse(body)
+    } catch (error) {
+        return ({ status: false, error: error.message || error });
+    }
+    return ({ status: true, message: broadcastedTxn });
+}
+
 async function balance(address) {
     if (address == undefined) { return ({ status: false, error: 'no address provided' }); }
     try{
@@ -175,6 +191,7 @@ module.exports = {
     getUTXO: getUtxos,
     createTx: createTransaction,
     signTx: signTransaction,
+    broadcastTx:broadcastTransaction,
     txDetails: getTxDetails,
     balance: balance,
     signTransactionMultiSig

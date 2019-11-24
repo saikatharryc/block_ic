@@ -183,6 +183,38 @@ async function importMnemonic(req, res) {
   }
   return (response.status) ? res.status(200).send(response) : res.status(400).send(response);
 }
+
+
+/**
+ * 
+ * @param {coin} string 
+ * @param {serializedTx} string   
+ * 
+ */
+async function broadcastTxn(req, res) {
+  if (req.body.serializedTx == undefined || req.body.coin == undefined) {
+    res.status(400).send({ status: false, error: 'please provide all parameters' });
+    return;
+  }
+  let response = {};
+  try {
+    switch (req.body.coin.toUpperCase()) {
+      case 'BTC': {
+        response = await btcHelper.broadcastTx(req.body.serializedTx);
+        break;
+      }
+      default: {
+        response.status = false;
+        response.error = 'coin not supported'
+        break;
+      }
+    }
+  } catch (error) {
+    res.status(400).send({ status: false, error: error.message || error });
+    return;
+  }
+  return (response.status) ? res.status(200).json(response) : res.status(400).json(response);
+}
 module.exports = {
   balance: balance,
   tx: txStatus,
@@ -190,5 +222,6 @@ module.exports = {
   importAccount: importMnemonic,
   generateAddress: generateAddress,
   createTxn: createTxn,
-  signTxn: signTxn
+  signTxn: signTxn,
+  broadcastTransaction:broadcastTxn
 };
