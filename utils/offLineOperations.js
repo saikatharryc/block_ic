@@ -94,8 +94,10 @@ function generateAddressesFromXpub(neuteredXpub, coinType, index) {
     if (hdkey.fromExtendedKey(neuteredXpub, getCurrentNetwork(coinType).CURRENT_NETWORK_VERSION).depth !== 4) {
         throw new Error('Please provide neutered Xpub at depth 4')
     };
+    let chainType = CHAIN_TYPE.RECEIVE[coinType.toUpperCase()];
+
     let genrtdAddress = {
-        path: 'm/' + index,
+        path: 'm/' +chainType+'/'+ index,
         index: index,
         publicAddress: addressDerivation[coinType.toUpperCase()].call(null, neuteredXpub, index),
         privateKey: ''
@@ -106,7 +108,7 @@ function generateAddressesFromXpub(neuteredXpub, coinType, index) {
 async function generateKeyPairFromXpriv(xpriv, coinType, total = 10) {
     if (!SUPPORTED_COINS.includes(coinType.toUpperCase())) { throw new Error('Coin not supported'); }
     if (hdkey.fromExtendedKey(xpriv, getCurrentNetwork(coinType).CURRENT_NETWORK_VERSION).depth !== 3) { throw new Error('Please provide Master Private key at Account depth or at 3') };
-    let hdNode = bitcoin.HDNode.fromBase58(xpriv, getCurrentNetwork(coinType).CURRENT_NETWORK);
+    let hdNode = bitcoin.bip32.fromBase58(xpriv, getCurrentNetwork(coinType).CURRENT_NETWORK);
     let chainType = CHAIN_TYPE.RECEIVE[coinType.toUpperCase()];
     let result = generatePubPrivFromHDNode(hdNode, chainType, total, coinType);
     console.log('[offlineTool-generatePubPrivFromHDNode]', result);
@@ -117,14 +119,14 @@ function generatePubPrivFromHDNode(HDNode, chainType, total = 10, coinType) {
     let resultArray = []
     switch (coinType.toUpperCase()) {
         case 'BTC': {
-            for (let i = 0; i < total; i++) {
-                resultArray.push({
-                    path: 'm/' + chainType + '/' + i,
-                    index: i,
-                    publicAddress: chainWallet.derive(i).keyPair.getAddress(),
-                    privateKey: chainWallet.derive(i).keyPair.toWIF()
+            
+                resultArray =({
+                    path: 'm/' + chainType + '/' + total,
+                    index: total,
+                    publicAddress: bitcoin.payments.p2pkh({ pubkey: chainWallet.derive(total).publicKey, network: getCurrentNetwork('BTC').CURRENT_NETWORK }).address,
+                    privateKey: chainWallet.derive(total).toWIF()
                 });
-            }
+            
             break;
         }
         default: { throw new Error('No such coin supported'); break; }
