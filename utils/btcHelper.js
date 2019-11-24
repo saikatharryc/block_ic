@@ -30,13 +30,15 @@ Number.prototype.toSatoshi = function () {
         return parseInt(sign + str.replace(".", "").replace(/^0+/, ""), 10);
     }
 };
+
+
 async function getUtxos(addresses = []) {
     let promiseArr = []
-    addresses.map(adrr=>promiseArr.push(btcHandler.requestGet('/address/' + adrr+'')))
+    addresses.map(adrr=>promiseArr.push(btcHandler.requestGet('/address/' + adrr+'/?unspent=true')))
     let utxoArray = await Promise.all(promiseArr);
     if (utxoArray.length < 1) throw new Error(' [getUtxos] Found ' + utxoArray.length + ' utxos');
     let resultArray = utxoArray.map((utxo, i) => {
-        utxo = utxo.body && JSON.parse(utxo.body) && JSON.parse(utxo.body).length ? JSON.parse(utxo.body)[0]:{
+        utxo = utxo.body && JSON.parse(utxo.body) && JSON.parse(utxo.body).length ? JSON.parse(utxo.body)[JSON.parse(utxo.body).length-1]:{
             address:'unknown',
             txid:'unknown',
             amount:0,
@@ -56,23 +58,24 @@ async function getUtxos(addresses = []) {
     return resultArray;
 }
 
-async function createTransaction(addresses = [], toAddress, sendAmount, fees = 10000, sequenceId = 0) {
+async function createTransaction(addresses = [], toAddress, sendAmount, fees = 10, sequenceId = 0) {
     if (addresses.length < 1 || toAddress == null || sendAmount == null) { return ({ status: false, error: 'transaction params not provided' }); }
     try {
         sendAmount = isNaN(parseInt(sendAmount)) ? 0 : parseInt(sendAmount);
         bitcoin.address.fromBase58Check(toAddress);
         let utxos = await getUtxos(addresses);
         let txBuilder = new bitcoin.TransactionBuilder(CURRENT_NETWORK);
+
         let sum = 0, isDone = false, vinOrder = [];
         // utxos.forEach((utxo) => { sum += utxo.amountInSatoshi || 0 });
-        txBuilder.setVersion(1)
-        
+        txBuilder.setVersion(2)
+        console.log()
         utxos.map((utxo, i) => {
             sum += utxo.satoshis;
             if (!isDone) {
                 if (sum >= (sendAmount + fees)) {
                     txBuilder.addInput(utxo.txid, utxo.outputIndex/* , sequenceId, utxo.script */);
-                    txBuilder.addOutput(utxo.address, (sum - (sendAmount + fees)));
+                    // txBuilder.addOutput(utxo.address, (sum - (sendAmount + fees)));
                     vinOrder.push(utxo.address);
                     isDone = true;
                     return;
@@ -83,8 +86,9 @@ async function createTransaction(addresses = [], toAddress, sendAmount, fees = 1
                 }
             }
         });
-        if (!isDone)
+        if (!isDone){
             return ({ status: false, error: 'Not enough balance, Please provide more UTXOs' });
+        }
         txBuilder.addOutput(toAddress, sendAmount);
         console.log({
             status: true,
@@ -108,8 +112,8 @@ async function signTransaction(tx, privateKeys = {}) {
     try {
         let txObject = bitcoin.Transaction.fromHex(tx.unsignedHex);
         var unsignedTx = bitcoin.TransactionBuilder.fromTransaction(txObject, CURRENT_NETWORK);
-    bitcoin.base
         unsignedTx.__TX.ins.forEach((vin, i) => {
+            unsignedTx.setVersion(2)
             unsignedTx.sign(i, bitcoin.ECPair.fromWIF(privateKeys[tx.vinOrder[i]], CURRENT_NETWORK));
         });
     } catch (error) { console.error(error); return ({ status: false, error: error.message || error }); }
@@ -146,6 +150,7 @@ async function getTxDetails(txHash) {
     try {
         var details = await btcHandler.requestGet('/tx/' + txHash);
         if (details.statusCode != 200) throw new Error(details.body);
+        details.body=JSON.parse(details.body)
     } catch (e) {
         console.error('[getTxDetails]', e);
         return ({ status: false, error: e.message || e });
@@ -164,7 +169,7 @@ async function broadcastTransaction(serializedTx) {
         return ({ status: false, error:request.body });
     }
     try {
-        var broadcastedTxn = JSON.parse(body)
+        var broadcastedTxn = JSON.parse(request.body)
     } catch (error) {
         return ({ status: false, error: error.message || error });
     }
