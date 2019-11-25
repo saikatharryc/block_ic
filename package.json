@@ -9,10 +9,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bignumber.js": "^9.0.0",
     "bip39": "^2.5.0",
     "bitcoinjs-lib": "^5.1.6",
     "bitcore-explorers": "^1.0.1",
     "express": "^4.17.1",
-    "hdkey": "^1.1.1"
+    "hdkey": "^1.1.1",
+    "mongoose": "^5.7.12"
   }
 }
