@@ -24,7 +24,7 @@ var TransactionSchema = mongoose.Schema(
         default:false
     },
     amount_in_satoshi:{
-      type:Number,
+      type:String,
       required:true
     }
   },

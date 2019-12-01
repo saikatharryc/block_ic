@@ -18,7 +18,7 @@ var WalletSchema = mongoose.Schema(
       type: String
     },
     balance_in_satoshi:{
-      type:Number,
+      type:String,
       default:0
     },
   },
