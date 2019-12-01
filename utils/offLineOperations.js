@@ -3,6 +3,13 @@ var bip39 = require('bip39')
 var hdkey = require('hdkey');
 var bitcoin = require('bitcoinjs-lib');
 var config = require('../config');
+const {signTx,createTx,broadcastTx}= require('./btcHelper')
+const { create_wallet,
+    get_all_wallets,
+    getWalletByAddress,
+    create_trx,
+    update_txn_status,
+    get_trx} = require('./mongo_uils')
 const CHAIN_TYPE = {
     RECEIVE: { BTC: 0 },
     CHANGE: { BTC: 0 }
@@ -63,7 +70,8 @@ async function importAccFromMnemonic(mnemonic, coinType) {
             let xpubImport = hdNode.derivePath(path).neutered().toBase58();
             let neuteredXpub = hdkey.fromExtendedKey(xpubImport, getCurrentNetwork(coinType).CURRENT_NETWORK_VERSION).deriveChild(chainType).toJSON().xpub;
             
-            let receivingAddresses = await generateAddressesFromXpub(neuteredXpub, coinType.toUpperCase(), 5);
+            let receivingAddresses = await generateAddressesFromXpub(neuteredXpub, coinType.toUpperCase(), config.DEPTH_INDEX);
+            await create_wallet(config.DEPTH_INDEX,Date.now(),receivingAddresses.publicAddress)
             account.mnemonicPhrase = mnemonicString;
             account.accountXpriv = xprivImport.toString();
             account.accountXpub = xpubImport.toString();
@@ -87,6 +95,7 @@ function mnemonicGenerate() {
 }
 
 function generateAddressesFromXpub(neuteredXpub, coinType, index) {
+  
     console.log('generateAddressesFromXpub(', coinType, index);
     if (neuteredXpub == null || parseInt(index) < 0 || coinType == null || !SUPPORTED_COINS.includes(coinType.toUpperCase()))
         throw new Error('XPUB length');
@@ -102,6 +111,7 @@ function generateAddressesFromXpub(neuteredXpub, coinType, index) {
         publicAddress: addressDerivation[coinType.toUpperCase()].call(null, neuteredXpub, index),
         privateKey: ''
     }
+    
     console.log('[genrtdAddress]', genrtdAddress);
     return genrtdAddress || null;
 };
@@ -135,30 +145,64 @@ function generatePubPrivFromHDNode(HDNode, chainType, total = 10, coinType) {
 }
 
 async function generateAddresses(extendedKey, coinType, total = 10) {
-    let addressArray = [];
+    let addressObj = {};
     if (!SUPPORTED_COINS.includes(coinType.toUpperCase())) { return ({ status: false, error: error.message || error }); }
     if (bitcoin.bip32.fromBase58(extendedKey,getCurrentNetwork(coinType).CURRENT_NETWORK).isNeutered()) {
         try {
-            addressArray = await generateAddressesFromXpub(extendedKey, coinType.toUpperCase(), total);
+            addressObj = await generateAddressesFromXpub(extendedKey, coinType.toUpperCase(), total);
+            await create_wallet(total,Date.now(),addressObj.publicAddress)
         } catch (error) {
             return ({ status: false, error: error.message || error });
         }
     } else {
         try {
-            addressArray = await generateKeyPairFromXpriv(extendedKey, coinType.toUpperCase(), total);
+            addressObj = await generateKeyPairFromXpriv(extendedKey, coinType.toUpperCase(), total);
+            await create_wallet(total,Date.now(),addressObj.publicAddress,addressObj.privateKey)
         } catch (error) {
             return ({ status: false, error: error.message || error });
         }
     }
-    return ({ status: true, message: addressArray || ['Some error happened'] });
+    return ({ status: true, message: addressObj || ['Some error happened'] });
 };
 
 async function generateMnemonic() {
     let mnemonicString = mnemonicGenerate();
     return (!mnemonicString) ? { status: false, error: 'Invalid mnemonic string' } : { status: true, message: mnemonicString };
 };
+
+
+
+
+//this will do the complete trx 
+const doTrxToExternalWallet = async(fromWallet,toWallet,totalAmount)=>{
+    if(!process.env['XADDR']){
+        throw Error('Please set and Hot wallet address to ENV XADDR')
+    }
+    let wallet_private_key=''
+    //create Txn
+    const {unsignedHex}= await createTx([fromWallet],toWallet,totalAmount) //we can dynamically generate some sort of fee may be.
+    console.log('[UNSIGNED_HEX]:',unsignedHex)
+    const walletObj= await getWalletByAddress(fromWallet)
+    if(!walletObj.wallet_private_key){
+        const {message}=await generateAddresses(process.env['XPRIV'],'BTC',walletObj.wallet_index)
+        wallet_private_key=message.privateKey
+    }else{
+        wallet_private_key=walletObj.wallet_private_key
+    }
+    //sign Txn
+    const {signedHex} = await signTx({unsignedHex:unsignedHex,vinOrder:[fromWallet]},{[fromWallet]:wallet_private_key});
+    console.log('[SIGNED_HEX]:',signedHex)
+    //broadcast txn
+    const broadCastResult = await broadcastTx(signedHex);
+    console.log(broadCastResult);
+    if(broadCastResult&& broadCastResult.message && broadCastResult.message.txid){
+    await create_trx(totalAmount,broadCastResult.message.txid,config.trx_status.DEBIT,config.trx_status.PENDING,fromWallet,toWallet,true)
+    }
+    return broadCastResult;
+}
 module.exports = {
     importMnemonic: importAccFromMnemonic,
     generateAddresses: generateAddresses,
-    getMnemonic: generateMnemonic
+    getMnemonic: generateMnemonic,
+    doTrxToExternalWallet:doTrxToExternalWallet
 };
