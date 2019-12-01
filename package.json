@@ -15,6 +15,9 @@
     "bitcore-explorers": "^1.0.1",
     "express": "^4.17.1",
     "hdkey": "^1.1.1",
-    "mongoose": "^5.7.12"
+    "mongoose": "^5.7.12",
+    "node-uuid": "^1.4.8",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.5"
   }
 }
