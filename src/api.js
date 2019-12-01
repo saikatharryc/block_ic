@@ -51,6 +51,9 @@ async function txStatus(req, res) {
   }
   return (response.status) ? res.status(200).json(response) : res.status(400).json(response);
 }
+
+
+
 /**
  * 
  * @param {} 
@@ -72,14 +75,13 @@ async function getMnemonic(req, res) {
  * @param {total} req 
  */
 async function generateAddress(req, res) {
-  console.log();
-  if (req.body.extendedkey == undefined || req.body.coin == undefined || req.body.total == undefined) {
+  if (req.body.extendedkey == undefined || req.body.coin == undefined || req.body.depth == undefined) {
     res.status(400).send({ status: false, error: 'please provide all parameters' });
     return;
   }
   let response = {};
   try {
-    response = await offlineTool.generateAddresses(req.body.extendedkey, req.body.coin, req.body.total);
+    response = await offlineTool.generateAddresses(req.body.extendedkey, req.body.coin, req.body.depth);
   } catch (error) {
     res.status(400).send({ status: false, error: error.message || error });
     return;
