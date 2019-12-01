@@ -116,7 +116,9 @@ async function signTransaction(tx, privateKeys = {}) {
             unsignedTx.setVersion(2)
             unsignedTx.sign(i, bitcoin.ECPair.fromWIF(privateKeys[tx.vinOrder[i]], CURRENT_NETWORK));
         });
-    } catch (error) { console.error(error); return ({ status: false, error: error.message || error }); }
+    } catch (error) {
+         console.error(error); return ({ status: false, error: error.message || error }); 
+        }
     console.log('signedTx', unsignedTx.build().toHex());
     return {
         status: true,
@@ -168,12 +170,7 @@ async function broadcastTransaction(serializedTx) {
     if(request.statusCode !== 200){
         return ({ status: false, error:request.body });
     }
-    try {
-        var broadcastedTxn = JSON.parse(request.body)
-    } catch (error) {
-        return ({ status: false, error: error.message || error });
-    }
-    return ({ status: true, message: broadcastedTxn });
+    return ({ status: true, message: request.body });
 }
 
 async function balance(address) {
@@ -188,8 +185,11 @@ async function balance(address) {
     if (balanceObj == null || balanceObj.body == null || balanceObj.body == 'Not found')
         return ({ status: false, error: 'Not found' });
     console.log('[btcHelper-getBalance]', balanceObj.body);
+    
     return ({ status: true, message: JSON.parse(balanceObj.body) });
 };
+
+
 
 
 module.exports = {
