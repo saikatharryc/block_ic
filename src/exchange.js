@@ -1,5 +1,5 @@
 const uuid = require('node-uuid');
-const offlineTool = require('../utils/offlineOperations');
+const offlineTool = require('../utils/offLineOperations');
 const {get_balance,addressIsLocal,create_trx,get_trx} = require('../utils/mongo_uils')
 const config = require('../config')
 

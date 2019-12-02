@@ -1,7 +1,7 @@
 'use strict';
 var btcHelper = require('../utils/btcHelper');
 var ethHelper = require('../utils/ethHelper');
-var offlineTool = require('../utils/offlineOperations');
+var offlineTool = require('../utils/offLineOperations');
 
 /**
  * 
