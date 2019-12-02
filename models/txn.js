@@ -26,6 +26,10 @@ var TransactionSchema = mongoose.Schema(
     amount_in_satoshi:{
       type:String,
       required:true
+    },
+    coinType:{
+      type:String,
+      require:true
     }
   },
   { timestamps: true }

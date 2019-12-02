@@ -58,7 +58,7 @@ async function getUtxos(addresses = []) {
     return resultArray;
 }
 
-async function createTransaction(addresses = [], toAddress, sendAmount, fees = 10, sequenceId = 0) {
+async function createTransaction(addresses = [], toAddress, sendAmount, fees = 1000, sequenceId = 0) {
     if (addresses.length < 1 || toAddress == null || sendAmount == null) { return ({ status: false, error: 'transaction params not provided' }); }
     try {
         sendAmount = isNaN(parseInt(sendAmount)) ? 0 : parseInt(sendAmount);
@@ -73,14 +73,14 @@ async function createTransaction(addresses = [], toAddress, sendAmount, fees = 1
         utxos.map((utxo, i) => {
             sum += utxo.satoshis;
             if (!isDone) {
-                if (sum >= (sendAmount + fees)) {
+                if (sum >= (sendAmount + Number(fees))) {
                     txBuilder.addInput(utxo.txid, utxo.outputIndex/* , sequenceId, utxo.script */);
-                    // txBuilder.addOutput(utxo.address, (sum - (sendAmount + fees)));
+                    txBuilder.addOutput(utxo.address, (sum - (sendAmount + Number(fees))));
                     vinOrder.push(utxo.address);
                     isDone = true;
                     return;
                 }
-                if (sum <= (sendAmount + fees)) {
+                if (sum <= (sendAmount + Number(fees))) {
                     txBuilder.addInput(utxo.txid, utxo.outputIndex/* , sequenceId, utxo.script */);
                     vinOrder.push(utxo.address);
                 }

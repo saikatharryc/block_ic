@@ -22,13 +22,13 @@ const explore_block_by_no= async(block_height)=>{
     }
     
     const tx_hash_arr = response.map(i=>i.txid)
-    const all_tx = await get_all_unconfirmed_external_txn();
+    const all_tx = await get_all_unconfirmed_external_txn("BTC");
     for(let i of all_tx){
         if(tx_hash_arr.indexOf(i.tx_hash) > -1 ){
-            await update_txn_status(i.tx_hash,trx_status)
+            await update_txn_status("BTC",i.tx_hash,trx_status)
         }
     }
-    return await create_remark_block(response[0].blockHash,block_height);
+    return await create_remark_block("BTC",response[0].blockHash,block_height);
 
 }
 const block_explorer_bulk =async(from_block,to_block)=>{
@@ -42,7 +42,7 @@ const block_explorer_bulk =async(from_block,to_block)=>{
 const start_exploring = async()=>{
     try{
    const {height}= await getCurrentTip()
-    const last_block_doc = await get_last_processed_block()
+    const last_block_doc = await get_last_processed_block("BTC")
     if(last_block_doc && last_block_doc.length){
         //start from the last mined block to current tip -1
         b= await block_explorer_bulk(last_block_doc[0].last_explored_height+1,height-1);

@@ -17,7 +17,7 @@ const incoming_trx_throttl =async(address)=>{
     const response = await rp.get(config.insightProvider[config.current]+'/address/'+address+'/txs',{json:true});
     const {height}= await getCurrentTip()
     for(let i of response){
-        await incoming_external_txn(i.value,
+        await incoming_external_txn("BTC",i.value,
         i.mintTxid,
         i.mintHeight == -1  ? config.trx_status.PENDING: ((height-i.mintHeight) >= 6 ? config.trx_status.CONFIRMED:config.trx_status.PENDING),
         null,
@@ -55,7 +55,7 @@ const roll_over_wallets =async()=>{
     const totalAmount = new bignumber()
     const fromWallets = []
     const privKeys = []
-    const all_addresses= await getLocalAddressArr();
+    const all_addresses= await getLocalAddressArr("BTC");
     for(let i of all_addresses){
         const retrivedBal = await get_wallet_bal(i);
         if(retrivedBal){

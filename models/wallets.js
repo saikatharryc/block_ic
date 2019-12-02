@@ -2,6 +2,10 @@ const mongoose = require("mongoose");
 
 var WalletSchema = mongoose.Schema(
   {
+    coinType:{
+      type:String,
+      require:true
+    },
     wallet_index: {
       type: Number,
       default: 0

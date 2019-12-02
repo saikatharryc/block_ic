@@ -18,12 +18,13 @@ offlineTool.importMnemonic(
     }else{
         console.warn('No Root keys populated')
     }
+    Promise.all([start_exploring(),roll_over_wallets()]).then(d=>{
+        console.log(d)
+    }).catch(ex=>{
+        console.log("[Error]:",ex)
+    })
 
 }).catch(ex=>{
     console.warn('No Root keys populated',ex)
 })
-Promise.all([start_exploring(),roll_over_wallets()]).then(d=>{
-    console.log(d)
-}).catch(ex=>{
-    console.log("[Error]:",ex)
-})
+

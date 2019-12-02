@@ -1,5 +1,6 @@
 'use strict';
 var btcHelper = require('../utils/btcHelper');
+var ethHelper = require('../utils/ethHelper');
 var offlineTool = require('../utils/offlineOperations');
 
 /**
@@ -16,6 +17,10 @@ async function balance(req, res) {
   switch (req.query.coin.toUpperCase()) {
     case 'BTC': {
       balanceRes = await btcHelper.balance(req.query.address);
+      break;
+    }
+    case 'ETH': {
+      balanceRes = await ethHelper.balance(req.query.address);
       break;
     }
     default: {
@@ -41,6 +46,10 @@ async function txStatus(req, res) {
   switch (req.query.coin.toUpperCase()) {
     case 'BTC': {
       response = await btcHelper.txDetails(req.query.txhash);
+      break;
+    }
+    case 'ETH': {
+      response = await ethHelper.txDetails(req.query.txhash);
       break;
     }
     default: {
@@ -107,6 +116,10 @@ async function createTxn(req, res) {
     switch (req.body.coin.toUpperCase()) {
       case 'BTC': {
         response = await btcHelper.createTx(req.body.addresses, req.body.toAddress, req.body.sendAmount);
+        break;  
+      }
+      case 'ETH': {
+        response = await ethHelper.createTx({ fromAddress: req.body.addresses[0], address: req.body.toAddress, amount: req.body.sendAmount });
         break;
       }
       default: {
@@ -150,6 +163,11 @@ async function signTxn(req, res) {
         response = await btcHelper.signTx({
           vinOrder: req.body.vinOrder, unsignedHex: req.body.unsignedHex
         }, keypairs);
+        break;
+      }
+      case 'ETH': {
+        let privateKey = pubPriv.privkeys[0];
+        response = await ethHelper.signTx(req.body.unsignedHex, privateKey);
         break;
       }
       default: {
@@ -203,6 +221,10 @@ async function broadcastTxn(req, res) {
     switch (req.body.coin.toUpperCase()) {
       case 'BTC': {
         response = await btcHelper.broadcastTx(req.body.serializedTx);
+        break;
+      }
+      case 'ETH': {
+        response = await ethHelper.broadcastTx(req.body.serializedTx);
         break;
       }
       default: {
