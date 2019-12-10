@@ -250,7 +250,7 @@ function generatePubPrivFromHDNode(HDNode, chainType, total = 10, coinType) {
           index: i,
           publicAddress: ethereumUtils.toChecksumAddress(
             ethereumUtils
-              .publicToAddress(chainWallet.derive(i).getPublicKeyBuffer(), true)
+              .publicToAddress(chainWallet.derive(i).publicKey, true)
               .toString("hex")
           ),
           privateKey: ethereumUtils.addHexPrefix(
